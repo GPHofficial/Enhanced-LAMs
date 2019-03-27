@@ -5,6 +5,7 @@
 // @description  A better LAMs player
 // @author       @GPHOfficial
 // @match        *://presentur.ntu.edu.sg/aculearn-idm/*
+// @match        *://*.ntu.edu.sg/content/*/*/media/1.mp4?rnd=
 // @match        *://lams.ntu.edu.sg/lams/tool/lanb11/starter/learner.do?
 // @match        *://*.ntu.edu.sg/aculearn-me/v9/studio/play.asp?*
 // ==/UserScript==
@@ -12,23 +13,29 @@
 (function() {
     'use strict';
 
+    var ranbefore = false;
+
 
     var script = document.createElement('script');
 
-    script.src = "https://gphofficial.github.io/videojs-vtt-thumbnails/videojs.thumbnails.js";
+    script.src = "https://lams.gphofficial.com/videojs-vtt-thumbnails/videojs.thumbnails.js";
 
-    document.head.appendChild(script); //or something of the likes
+    document.head.appendChild(script);
 
     var link = document.createElement("link");
-    link.href = "https://gphofficial.github.io/videojs-vtt-thumbnails/videojs.thumbnails.css";
+    link.href = "https://lams.gphofficial.com/videojs-vtt-thumbnails/videojs.thumbnails.css";
     link.type = "text/css";
     link.rel = "stylesheet";
     document.getElementsByTagName("head")[0].appendChild(link);
 
+    var videoURL;
+    var videoID;
+
+    
     document.addEventListener('keydown',function(e){
 
-        var videoURL = document.getElementById("Video1_html5_api").src;
-        var videoID = videoURL.slice(videoURL.indexOf("/content/")+9,videoURL.indexOf("/media/1.mp4")).replace("/","-")
+         videoURL = document.getElementById("Video1_html5_api").src;
+         videoID = videoURL.slice(videoURL.indexOf("/content/")+9,videoURL.indexOf("/media/1.mp4")).replace("/","-")
 
         if(e.keyCode == 32){
             document.getElementsByClassName("vjs-play-control")[0].click();
@@ -110,26 +117,22 @@
         //var temp = videojs(document.getElementById("Video1_html5_api"));
         //console.log(arvplayer);
 
-        var captionOption = {
+        var subtitles = {
             kind: 'subtitles',
             srclang: 'en',
             label: 'English',
-            src: 'http://lams.southeastasia.cloudapp.azure.com/' + videoID + '/sub.vtt',
+            src: 'https://lams.gphofficial.com/' + videoID + '/sub.vtt',
             default: true
         };
 
-        //'http://gist.githubusercontent.com/GPHofficial/b3198e958667b8972dea20f6dab1d631/raw/a878817b6e208eea06474f5cd66fb4028fec2c83/webvtt.vtt'
-
-        arvplayer.addRemoteTextTrack(captionOption);
-
-        captionOption = {
+        var thumbnails = {
             kind: 'metadata',
-            src: 'http://lams.southeastasia.cloudapp.azure.com/' + videoID + '/video.vtt'
+            src: 'https://lams.gphofficial.com/' + videoID + '/video.vtt'
         };
-
-        arvplayer.addRemoteTextTrack(captionOption);
-
-        var tracks = arvplayer.textTracks();
+if(!ranbefore){
+        arvplayer.addRemoteTextTrack(thumbnails,false);
+    arvplayer.addRemoteTextTrack(subtitles,false);
+    var tracks = arvplayer.textTracks();
 
         for (var i = 0; i < tracks.length; i++) {
             var track = tracks[i];
@@ -139,10 +142,8 @@
                 track.mode = 'showing';
             }
         }
-
-        arvplayer.thumbnails({width:400,height:250,basePath : "http://lams.southeastasia.cloudapp.azure.com/" + videoID + "/"})
-
-        var xhr = new XMLHttpRequest(),
+    arvplayer.thumbnails({width:400,height:250,basePath : "https://lams.gphofficial.com/" + videoID + "/"})
+    var xhr = new XMLHttpRequest(),
             fileReader = new FileReader();
 
 
@@ -157,7 +158,7 @@
 
             if (xhr.status === 200) {
 
-                //console.log(xhr.response)
+                console.log("received vid, sending now")
 
 
 
@@ -165,14 +166,32 @@
                 var formData = new FormData();
                 formData.append("files", xhr.response);
                 formData.append("fileName",videoID);
-                oReq.open("POST", "http://lams.southeastasia.cloudapp.azure.com/api/v1/video", true);
+                oReq.open("POST", "https://lams.gphofficial.com/api/v1/video", true);
                 oReq.send(formData);
             }
 
         }, false);
         // Send XHR
-        xhr.send();
+        var test =  new XMLHttpRequest()
+        test.open("GET", 'https://lams.gphofficial.com/' + videoID + '/sub.vtt', true);
+        test.send();
+        test.onload = function () {
+            console.log('DONE: ', test.status);
+            if(test.status != 200){
+                console.log("download and send start")
+                xhr.send();
+            }
+        };
+    ranbefore = true;
+}
 
+
+        
+
+        
+
+
+        
 
     })
 
