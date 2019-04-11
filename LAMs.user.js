@@ -31,11 +31,11 @@
     var videoURL;
     var videoID;
 
-    
+
     document.addEventListener('keydown',function(e){
 
-         videoURL = document.getElementById("Video1_html5_api").src;
-         videoID = videoURL.slice(videoURL.indexOf("/content/")+9,videoURL.indexOf("/media/1.mp4")).replace("/","-")
+        videoURL = document.getElementById("Video1_html5_api").src;
+        videoID = videoURL.slice(videoURL.indexOf("/content/")+9,videoURL.indexOf("/media/1.mp4")).replace("/","-")
 
         if(e.keyCode == 32){
             document.getElementsByClassName("vjs-play-control")[0].click();
@@ -129,69 +129,84 @@
             kind: 'metadata',
             src: 'https://lams.gphofficial.com/' + videoID + '/video.vtt'
         };
-if(!ranbefore){
-        arvplayer.addRemoteTextTrack(thumbnails,false);
-    arvplayer.addRemoteTextTrack(subtitles,false);
-    var tracks = arvplayer.textTracks();
+        if(!ranbefore){
+            arvplayer.addRemoteTextTrack(thumbnails,false);
+            arvplayer.addRemoteTextTrack(subtitles,false);
+            var tracks = arvplayer.textTracks();
 
-        for (var i = 0; i < tracks.length; i++) {
-            var track = tracks[i];
+            for (var i = 0; i < tracks.length; i++) {
+                var track = tracks[i];
 
-            // Find the English captions track and mark it as "showing".
-            if (track.kind === 'subtitles' || track.kind === 'metadata') {
-                track.mode = 'showing';
+                // Find the English captions track and mark it as "showing".
+                if (track.kind === 'subtitles' || track.kind === 'metadata') {
+                    track.mode = 'showing';
+                }
             }
+            arvplayer.thumbnails({width:400,height:250,basePath : "https://lams.gphofficial.com/" + videoID + "/"})
+            var xhr = new XMLHttpRequest(),
+                fileReader = new FileReader();
+
+            var lastPercent = 0;
+            function progressUpdate(event){
+                var currentPercent = Math.round((event.loaded / event.total) * 100);
+                if(currentPercent%5 == 0 && lastPercent != currentPercent){
+                    lastPercent = currentPercent;
+                    console.log(currentPercent + "% Done");
+                }
+            }
+
+
+
+            xhr.open("GET", document.getElementById("Video1_html5_api").src, true);
+            // Set the responseType to blob
+            xhr.responseType = "blob";
+            xhr.onprogress = progressUpdate;
+            xhr.addEventListener("load", function () {
+                console.groupEnd();
+                if (xhr.status === 200) {
+                    console.group("Upload Start")
+                    var oReq = new XMLHttpRequest();
+                    var formData = new FormData();
+                    formData.append("files", xhr.response);
+                    formData.append("fileName",videoID);
+                    oReq.upload.onprogress = progressUpdate;
+                    oReq.open("POST", "https://lams.gphofficial.com/api/v1/video", true);
+                    oReq.send(formData);
+
+                    oReq.onload = function(){
+                        console.groupEnd();
+                        if(oReq.status == 200){
+                            console.log("Done upload to server")
+                        } else{
+                            console.log("Error uploading to server")
+                        }
+                    }
+                }
+
+            }, false);
+
+            // Check if Subtitles Exists
+            var test =  new XMLHttpRequest()
+            test.open("GET", 'https://lams.gphofficial.com/' + videoID + '/video.vtt', true);
+            test.send();
+
+            test.onload = function () {
+                console.log('Subtitle Status: ', test.status);
+                if(test.status != 200){
+                    xhr.send();
+                    console.group("Download Start")
+                }
+            };
+            ranbefore = true;
         }
-    arvplayer.thumbnails({width:400,height:250,basePath : "https://lams.gphofficial.com/" + videoID + "/"})
-    var xhr = new XMLHttpRequest(),
-            fileReader = new FileReader();
 
 
 
 
 
 
-        xhr.open("GET", document.getElementById("Video1_html5_api").src, true);
-        // Set the responseType to blob
-        xhr.responseType = "blob";
-        xhr.addEventListener("load", function () {
-
-            if (xhr.status === 200) {
-
-                console.log("received vid, sending now")
 
 
-
-                var oReq = new XMLHttpRequest();
-                var formData = new FormData();
-                formData.append("files", xhr.response);
-                formData.append("fileName",videoID);
-                oReq.open("POST", "https://lams.gphofficial.com/api/v1/video", true);
-                oReq.send(formData);
-            }
-
-        }, false);
-        // Send XHR
-        var test =  new XMLHttpRequest()
-        test.open("GET", 'https://lams.gphofficial.com/' + videoID + '/sub.vtt', true);
-        test.send();
-        test.onload = function () {
-            console.log('DONE: ', test.status);
-            if(test.status != 200){
-                console.log("download and send start")
-                xhr.send();
-            }
-        };
-    ranbefore = true;
-}
-
-
-        
-
-        
-
-
-        
 
     })
 
